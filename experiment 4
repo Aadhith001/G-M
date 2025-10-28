@@ -1,0 +1,94 @@
+import matplotlib.pyplot as plt
+
+EDGE_LEFT, EDGE_RIGHT, EDGE_BOTTOM, EDGE_TOP = range(4)
+
+def is_inside(point, edge, window):
+    x, y = point
+    xmin, xmax, ymin, ymax = window
+
+    if edge == EDGE_LEFT:
+        return x >= xmin
+    elif edge == EDGE_RIGHT:
+        return x <= xmax
+    elif edge == EDGE_BOTTOM:
+        return y >= ymin
+    elif edge == EDGE_TOP:
+        return y <= ymax
+
+
+def get_intersection(p1, p2, edge, window):
+    xmin, xmax, ymin, ymax = window
+    x1, y1 = p1
+    x2, y2 = p2
+
+    if edge == EDGE_LEFT:
+        x = xmin
+        y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1)
+    elif edge == EDGE_RIGHT:
+        x = xmax
+        y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1)
+    elif edge == EDGE_BOTTOM:
+        y = ymin
+        x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1)
+    elif edge == EDGE_TOP:
+        y = ymax
+        x = x1 + (x2 - x1) * (ymax - y1) / (y2 - y1)
+    return (x, y)
+
+
+def sutherland_hodgman_clip(polygon, clip_window):
+    clipped = polygon
+
+    for edge in [EDGE_LEFT, EDGE_RIGHT, EDGE_BOTTOM, EDGE_TOP]:
+        input_list = clipped
+        clipped = []
+
+        if not input_list:
+            break
+
+        prev_point = input_list[-1]
+
+        for curr_point in input_list:
+            curr_inside = is_inside(curr_point, edge, clip_window)
+            prev_inside = is_inside(prev_point, edge, clip_window)
+
+            if curr_inside:
+                if not prev_inside:
+                    clipped.append(get_intersection(prev_point, curr_point, edge, clip_window))
+                clipped.append(curr_point)
+            elif prev_inside:
+                clipped.append(get_intersection(prev_point, curr_point, edge, clip_window))
+
+            prev_point = curr_point
+
+    return clipped
+
+
+def plot_polygon(points, color, label):
+    x, y = zip(*(points + [points[0]]))
+    plt.plot(x, y, color=color, label=label)
+
+
+clip_rect = (100, 300, 100, 300)  
+polygon_points = [(50, 150), (200, 50), (350, 150), (350, 300), (250, 350), (150, 300)]
+
+clipped_points = sutherland_hodgman_clip(polygon_points, clip_rect)
+
+plt.figure(figsize=(8, 8))
+plot_polygon(polygon_points, 'blue', 'Original Polygon')
+
+window_corners = [
+    (clip_rect[0], clip_rect[2]),
+    (clip_rect[1], clip_rect[2]),
+    (clip_rect[1], clip_rect[3]),
+    (clip_rect[0], clip_rect[3])
+]
+plot_polygon(window_corners, 'black', 'Clipping Window')
+
+plot_polygon(clipped_points, 'red', 'Clipped Polygon')
+
+plt.title("Sutherland–Hodgman Polygon Clipping")
+plt.legend()
+plt.grid(True)
+plt.axis("equal")
+plt.show()
